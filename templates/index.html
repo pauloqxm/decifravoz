@@ -114,10 +114,20 @@
                             <h3>Processando...</h3>
                             <div class="spinner"></div>
                         </div>
+                        <div class="progress-info">
+                            <span class="progress-percentage">0%</span>
+                            <span class="progress-time"></span>
+                        </div>
                         <div class="progress-bar">
                             <div class="progress-fill"></div>
                         </div>
                         <p class="progress-text">Aguarde enquanto transcrevemos seu áudio</p>
+                        
+                        <!-- Prévia em tempo real -->
+                        <div id="livePreview" class="live-preview" style="display: none;">
+                            <h4>Prévia da Transcrição</h4>
+                            <div id="previewSegments" class="preview-segments"></div>
+                        </div>
                     </div>
                 </div>
 
