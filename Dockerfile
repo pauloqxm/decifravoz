@@ -16,8 +16,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Código da aplicação
 COPY . .
 
-# Railway injeta PORT em tempo de execução
-ENV PORT=5000
-EXPOSE $PORT
+# Script que expande PORT corretamente em tempo de execução
+RUN chmod +x entrypoint.sh
 
-CMD gunicorn app:app --bind 0.0.0.0:$PORT --timeout 600 --workers 1
+ENV PORT=5000
+EXPOSE 5000
+
+CMD ["./entrypoint.sh"]
