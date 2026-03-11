@@ -13,6 +13,10 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max
 app.config['DATA_FOLDER'] = 'data'
 
+# Criar pastas imediatamente ao iniciar
+os.makedirs('uploads', exist_ok=True)
+os.makedirs('data', exist_ok=True)
+
 ALLOWED_EXTENSIONS = {'mp3', 'wav', 'mp4', 'm4a', 'ogg', 'flac'}
 
 # Carregar correções customizadas
@@ -76,10 +80,25 @@ def transcribe():
     
     filepath = None
     try:
+        # Garantir que a pasta uploads existe
+        upload_folder = os.path.abspath(app.config['UPLOAD_FOLDER'])
+        os.makedirs(upload_folder, exist_ok=True)
+        
         # Salvar arquivo
         filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        filepath = os.path.join(upload_folder, filename)
+        
+        print(f"Salvando arquivo: {filename}")
+        print(f"Caminho completo: {filepath}")
+        print(f"Pasta uploads existe: {os.path.exists(upload_folder)}")
+        
         file.save(filepath)
+        
+        if not os.path.exists(filepath):
+            raise Exception(f"Arquivo não foi salvo: {filepath}")
+        
+        print(f"Arquivo salvo com sucesso!")
+        print(f"Tamanho do arquivo: {os.path.getsize(filepath)} bytes")
         
         # Carregar modelo Whisper
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -196,6 +215,7 @@ def add_correction():
     return jsonify({'success': True, 'corrections': corrections})
 
 if __name__ == '__main__':
+    # Criar pastas necessárias
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
     
@@ -209,6 +229,14 @@ if __name__ == '__main__':
     if not os.path.exists(history_path):
         with open(history_path, 'w', encoding='utf-8') as f:
             json.dump([], f)
+    
+    print("="*60)
+    print("DecifraVoz - Sistema de Transcrição")
+    print("="*60)
+    print(f"Pasta uploads: {os.path.abspath(app.config['UPLOAD_FOLDER'])}")
+    print(f"Pasta data: {os.path.abspath(app.config['DATA_FOLDER'])}")
+    print("="*60)
+    print()
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
