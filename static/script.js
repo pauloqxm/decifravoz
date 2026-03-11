@@ -47,46 +47,164 @@ document.querySelectorAll('.model-card').forEach(card => {
 });
 
 // Transcribe
+let progressInterval = null;
+let estimatedTime = 0;
+let previewSegments = [];
+let eventSource = null;
+
 document.getElementById('transcribeBtn').addEventListener('click', async () => {
     if (!selectedFile) return;
     
     // Hide results, show progress
     document.getElementById('resultsSection').style.display = 'none';
     document.getElementById('progressSection').style.display = 'block';
+    document.getElementById('livePreview').style.display = 'block';
+    document.getElementById('previewSegments').innerHTML = '';
+    previewSegments = [];
+    
+    // Estimar tempo baseado no tamanho do arquivo e modelo
+    const fileSizeMB = selectedFile.size / (1024 * 1024);
+    const modelMultiplier = {
+        'tiny': 0.5,
+        'base': 1,
+        'small': 2,
+        'medium': 4,
+        'large': 8
+    };
+    estimatedTime = fileSizeMB * 10 * (modelMultiplier[selectedModel] || 1);
+    
+    // Iniciar barra de progresso
+    startProgressSimulation(estimatedTime);
     
     const formData = new FormData();
     formData.append('audio', selectedFile);
     formData.append('model', selectedModel);
     
     try {
-        const response = await fetch('/api/transcribe', {
+        // Usar endpoint de streaming
+        const response = await fetch('/api/transcribe-stream', {
             method: 'POST',
             body: formData
         });
         
-        const data = await response.json();
-        
-        if (data.error) {
-            alert('Erro: ' + data.error);
-            document.getElementById('progressSection').style.display = 'none';
-            return;
+        if (!response.ok) {
+            throw new Error('Erro na requisição');
         }
         
-        transcriptionResult = data;
-        displayResults(data);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let allSegments = [];
         
-        // Hide progress, show results
-        document.getElementById('progressSection').style.display = 'none';
-        document.getElementById('resultsSection').style.display = 'block';
-        
-        // Scroll to results
-        document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        while (true) {
+            const {done, value} = await reader.read();
+            
+            if (done) break;
+            
+            buffer += decoder.decode(value, {stream: true});
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = JSON.parse(line.slice(6));
+                    
+                    if (data.type === 'segment') {
+                        allSegments.push(data);
+                        addRealPreviewSegment(data);
+                    } else if (data.type === 'complete') {
+                        stopProgressSimulation();
+                        transcriptionResult = {
+                            text: data.text,
+                            segments: allSegments,
+                            stats: data.stats
+                        };
+                        displayResults(transcriptionResult);
+                        
+                        document.getElementById('progressSection').style.display = 'none';
+                        document.getElementById('resultsSection').style.display = 'block';
+                        document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+                    } else if (data.type === 'error') {
+                        throw new Error(data.message);
+                    }
+                }
+            }
+        }
         
     } catch (error) {
+        stopProgressSimulation();
         alert('Erro ao transcrever: ' + error.message);
         document.getElementById('progressSection').style.display = 'none';
     }
 });
+
+// Simular progresso baseado em tempo estimado
+function startProgressSimulation(estimatedSeconds) {
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    const progressPercentage = document.querySelector('.progress-percentage');
+    const progressTime = document.querySelector('.progress-time');
+    
+    let elapsed = 0;
+    const updateInterval = 100;
+    
+    progressFill.style.animation = 'none';
+    progressFill.style.width = '0%';
+    
+    progressInterval = setInterval(() => {
+        elapsed += updateInterval / 1000;
+        
+        let progress = Math.min((elapsed / estimatedSeconds) * 100, 95);
+        
+        if (progress > 70) {
+            progress = 70 + (progress - 70) * 0.5;
+        }
+        
+        progressFill.style.width = progress + '%';
+        progressPercentage.textContent = Math.floor(progress) + '%';
+        
+        const remainingTime = Math.max(0, Math.ceil(estimatedSeconds - elapsed));
+        const minutes = Math.floor(remainingTime / 60);
+        const seconds = remainingTime % 60;
+        
+        if (remainingTime > 0) {
+            progressTime.textContent = `Tempo estimado: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            progressText.textContent = 'Processando áudio com Whisper AI...';
+        } else {
+            progressTime.textContent = 'Quase pronto...';
+            progressText.textContent = 'Finalizando transcrição...';
+        }
+    }, updateInterval);
+}
+
+function addRealPreviewSegment(segment) {
+    const previewSegments = document.getElementById('previewSegments');
+    const startTime = formatTime(segment.start);
+    const endTime = formatTime(segment.end);
+    
+    const segmentHtml = `
+        <div class="preview-segment">
+            <div class="preview-segment-time">${startTime} → ${endTime}</div>
+            <div class="preview-segment-text">${segment.text}</div>
+        </div>
+    `;
+    
+    previewSegments.insertAdjacentHTML('beforeend', segmentHtml);
+    previewSegments.scrollTop = previewSegments.scrollHeight;
+}
+
+function stopProgressSimulation() {
+    if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+    }
+    
+    // Completar barra
+    const progressFill = document.querySelector('.progress-fill');
+    const progressPercentage = document.querySelector('.progress-percentage');
+    progressFill.style.width = '100%';
+    progressPercentage.textContent = '100%';
+}
 
 // Display Results
 function displayResults(data) {
