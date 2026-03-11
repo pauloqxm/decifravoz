@@ -1,0 +1,206 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║   ██████╗ ███████╗ ██████╗██╗███████╗██████╗  █████╗ ██╗   ██╗ ██████╗ ║
+║   ██╔══██╗██╔════╝██╔════╝██║██╔════╝██╔══██╗██╔══██╗██║   ██║██╔═══██╗║
+║   ██║  ██║█████╗  ██║     ██║█████╗  ██████╔╝███████║██║   ██║██║   ██║║
+║   ██║  ██║██╔══╝  ██║     ██║██╔══╝  ██╔══██╗██╔══██║╚██╗ ██╔╝██║   ██║║
+║   ██████╔╝███████╗╚██████╗██║██║     ██║  ██║██║  ██║ ╚████╔╝ ╚██████╔╝║
+║   ╚═════╝ ╚══════╝ ╚═════╝╚═╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝   ╚═════╝ ║
+║                                                                          ║
+║              🎙️ Transcrição de Áudio com Inteligência Artificial       ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📦 PROJETO CRIADO COM SUCESSO!                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📂 ESTRUTURA DO PROJETO                                                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Railway/                                                                │
+│  ├── 🐍 app.py                    Backend Flask + API REST              │
+│  ├── 📄 templates/                                                       │
+│  │   └── index.html               Frontend HTML5 moderno                │
+│  ├── 🎨 static/                                                          │
+│  │   ├── style.css                Design responsivo e atraente          │
+│  │   └── script.js                Interatividade e AJAX                 │
+│  ├── 📊 data/                                                            │
+│  │   ├── correcoes_custom.json    Dicionário de correções               │
+│  │   └── historico_transcricoes.json  Histórico de transcrições         │
+│  ├── 📁 uploads/                   Arquivos temporários                 │
+│  ├── 📋 requirements.txt           Dependências Python                  │
+│  ├── 🚂 Procfile                   Comando Railway                      │
+│  ├── 🐍 runtime.txt                Versão Python 3.11                   │
+│  ├── ⚙️ railway.json               Configuração Railway                 │
+│  ├── 🚫 .gitignore                 Arquivos ignorados                   │
+│  ├── 📖 README.md                  Documentação completa                │
+│  ├── 🚀 QUICKSTART.md              Início rápido                        │
+│  ├── 🚂 DEPLOY.md                  Guia de deploy                       │
+│  ├── 📡 API.md                     Documentação da API                  │
+│  ├── 🎨 VISUAL.md                  Design e interface                   │
+│  ├── ⚖️ LICENSE                    Licença MIT                          │
+│  ├── 🪟 start.bat                  Script Windows                       │
+│  └── 🐧 start.sh                   Script Linux/Mac                     │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ ✨ CARACTERÍSTICAS PRINCIPAIS                                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ✅ Transcrição automática com Whisper AI                               │
+│  ✅ 5 modelos disponíveis (tiny, base, small, medium, large)            │
+│  ✅ Interface web moderna e responsiva                                   │
+│  ✅ Design atraente com gradientes roxo/azul                             │
+│  ✅ Upload drag & drop                                                   │
+│  ✅ Suporte a múltiplos formatos (MP3, WAV, MP4, M4A, OGG, FLAC)        │
+│  ✅ Correções personalizadas                                             │
+│  ✅ Histórico de transcrições                                            │
+│  ✅ Timestamps detalhados                                                │
+│  ✅ Export para TXT                                                      │
+│  ✅ API REST completa                                                    │
+│  ✅ Deploy fácil no Railway                                              │
+│  ✅ 100% Open Source (MIT License)                                       │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🚀 COMO USAR                                                            │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1️⃣ TESTE LOCAL                                                         │
+│     Windows:  start.bat                                                  │
+│     Linux/Mac: ./start.sh                                                │
+│     Acesse: http://localhost:5000                                        │
+│                                                                          │
+│  2️⃣ DEPLOY NO RAILWAY                                                   │
+│     • Crie conta em railway.app                                          │
+│     • Conecte repositório GitHub                                         │
+│     • Deploy automático                                                  │
+│     • Gere domínio público                                               │
+│                                                                          │
+│  3️⃣ USE A APLICAÇÃO                                                     │
+│     • Faça upload de áudio                                               │
+│     • Escolha modelo                                                     │
+│     • Clique em "Transcrever"                                            │
+│     • Copie ou baixe resultado                                           │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🎨 TECNOLOGIAS UTILIZADAS                                               │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Backend:                                                                │
+│    • Python 3.11                                                         │
+│    • Flask 3.0                                                           │
+│    • OpenAI Whisper                                                      │
+│    • PyTorch                                                             │
+│    • Gunicorn                                                            │
+│                                                                          │
+│  Frontend:                                                               │
+│    • HTML5                                                               │
+│    • CSS3 (Gradientes, Animações, Grid, Flexbox)                        │
+│    • JavaScript Vanilla (ES6+)                                           │
+│    • Fetch API                                                           │
+│    • FormData API                                                        │
+│                                                                          │
+│  Deploy:                                                                 │
+│    • Railway                                                             │
+│    • Git                                                                 │
+│    • GitHub                                                              │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📊 MODELOS WHISPER                                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Modelo    Tamanho    Velocidade    Precisão    RAM Necessária          │
+│  ────────────────────────────────────────────────────────────────       │
+│  Tiny      39 MB      ⚡⚡⚡⚡⚡      ⭐⭐          512 MB                │
+│  Base      74 MB      ⚡⚡⚡⚡        ⭐⭐⭐        1 GB                  │
+│  Small     244 MB     ⚡⚡⚡          ⭐⭐⭐⭐      2 GB                  │
+│  Medium    769 MB     ⚡⚡            ⭐⭐⭐⭐⭐    5 GB                  │
+│  Large     1550 MB    ⚡              ⭐⭐⭐⭐⭐    10 GB                 │
+│                                                                          │
+│  💡 Recomendação: Use BASE para equilíbrio ideal                        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📚 DOCUMENTAÇÃO                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  📖 README.md       → Documentação completa do projeto                   │
+│  ⚡ QUICKSTART.md   → Guia de início rápido (3 minutos)                 │
+│  🚂 DEPLOY.md       → Passo a passo para deploy no Railway              │
+│  📡 API.md          → Documentação completa da API REST                  │
+│  🎨 VISUAL.md       → Demonstração visual da interface                   │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🎯 CASOS DE USO                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ✅ Transcrever reuniões e conferências                                 │
+│  ✅ Converter palestras em texto                                         │
+│  ✅ Criar legendas para vídeos                                           │
+│  ✅ Documentar entrevistas                                               │
+│  ✅ Gerar atas de eventos                                                │
+│  ✅ Acessibilidade (áudio → texto)                                       │
+│  ✅ Análise de conteúdo de áudio                                         │
+│  ✅ Backup textual de gravações                                          │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 💡 PRÓXIMOS PASSOS                                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. Leia o QUICKSTART.md para começar rapidamente                        │
+│  2. Teste localmente com start.bat ou start.sh                           │
+│  3. Faça seu primeiro upload e transcrição                               │
+│  4. Adicione correções personalizadas                                    │
+│  5. Siga o DEPLOY.md para colocar online                                 │
+│  6. Compartilhe com sua equipe                                           │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 🔗 LINKS ÚTEIS                                                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Railway:      https://railway.app                                       │
+│  Whisper AI:   https://github.com/openai/whisper                         │
+│  Flask:        https://flask.palletsprojects.com                         │
+│  Python:       https://python.org                                        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│ 📝 NOTAS IMPORTANTES                                                    │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  • Primeira transcrição demora mais (download do modelo)                 │
+│  • Railway plano gratuito: 512MB RAM (use tiny ou base)                  │
+│  • Para modelos maiores, considere upgrade do plano                      │
+│  • Áudio limpo = melhor resultado                                        │
+│  • Adicione correções para termos específicos                            │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║                    ✨ PROJETO PRONTO PARA USO! ✨                       ║
+║                                                                          ║
+║              Transforme áudio em texto com inteligência artificial       ║
+║                                                                          ║
+║                         🎙️ → 🤖 → 📝                                    ║
+║                                                                          ║
+║                    Boa sorte com seu projeto! 🚀                         ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝

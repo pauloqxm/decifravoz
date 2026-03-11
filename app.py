@@ -1,0 +1,214 @@
+import os
+import json
+import time
+import traceback
+from datetime import datetime
+from flask import Flask, render_template, request, jsonify, send_from_directory
+from werkzeug.utils import secure_filename
+import whisper
+import torch
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024  # 500MB max
+app.config['DATA_FOLDER'] = 'data'
+
+ALLOWED_EXTENSIONS = {'mp3', 'wav', 'mp4', 'm4a', 'ogg', 'flac'}
+
+# Carregar correções customizadas
+def load_corrections():
+    corrections_path = os.path.join(app.config['DATA_FOLDER'], 'correcoes_custom.json')
+    if os.path.exists(corrections_path):
+        with open(corrections_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+# Salvar histórico
+def save_to_history(data):
+    history_path = os.path.join(app.config['DATA_FOLDER'], 'historico_transcricoes.json')
+    history = []
+    if os.path.exists(history_path):
+        with open(history_path, 'r', encoding='utf-8') as f:
+            history = json.load(f)
+    history.insert(0, data)
+    with open(history_path, 'w', encoding='utf-8') as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+
+# Carregar histórico
+def load_history():
+    history_path = os.path.join(app.config['DATA_FOLDER'], 'historico_transcricoes.json')
+    if os.path.exists(history_path):
+        with open(history_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def apply_corrections(text, corrections):
+    for wrong, correct in corrections.items():
+        text = text.replace(wrong, correct)
+    return text
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/api/models', methods=['GET'])
+def get_models():
+    return jsonify({
+        'models': ['tiny', 'base', 'small', 'medium', 'large']
+    })
+
+@app.route('/api/transcribe', methods=['POST'])
+def transcribe():
+    if 'audio' not in request.files:
+        return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+    
+    file = request.files['audio']
+    model_name = request.form.get('model', 'base')
+    
+    if file.filename == '':
+        return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Formato de arquivo não suportado'}), 400
+    
+    filepath = None
+    try:
+        # Salvar arquivo
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        
+        # Carregar modelo Whisper
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"Carregando modelo {model_name} no dispositivo {device}...")
+        model = whisper.load_model(model_name, device=device)
+        
+        # Transcrever com configurações otimizadas para CPU
+        start_time = time.time()
+        print(f"Iniciando transcrição de {filename}...")
+        
+        # Configurações para CPU (FP32)
+        result = model.transcribe(
+            filepath,
+            language='pt',
+            fp16=False,  # Desabilita FP16 para CPU
+            verbose=True
+        )
+        
+        processing_time = time.time() - start_time
+        print(f"Transcrição concluída em {processing_time:.2f}s")
+        
+        # Aplicar correções
+        corrections = load_corrections()
+        text = result.get('text', '')
+        corrected_text = apply_corrections(text, corrections)
+        
+        # Extrair segmentos com timestamps
+        segments = []
+        for seg in result.get('segments', []):
+            segments.append({
+                'start': seg.get('start', 0),
+                'end': seg.get('end', 0),
+                'text': apply_corrections(seg.get('text', ''), corrections)
+            })
+        
+        # Calcular estatísticas
+        duration_min = result.get('duration', 0) / 60
+        word_count = len(corrected_text.split())
+        preview = corrected_text[:500] + "..." if len(corrected_text) > 500 else corrected_text
+        
+        # Salvar no histórico
+        history_data = {
+            'timestamp': datetime.now().isoformat(),
+            'arquivo': filename,
+            'modelo': model_name,
+            'duracao_min': duration_min,
+            'tempo_proc': processing_time,
+            'palavras': word_count,
+            'preview': preview
+        }
+        save_to_history(history_data)
+        
+        # Limpar arquivo temporário
+        if filepath and os.path.exists(filepath):
+            os.remove(filepath)
+        
+        return jsonify({
+            'success': True,
+            'text': corrected_text,
+            'segments': segments,
+            'stats': {
+                'duration': duration_min,
+                'processing_time': processing_time,
+                'word_count': word_count,
+                'model': model_name
+            }
+        })
+    
+    except Exception as e:
+        # Limpar arquivo em caso de erro
+        if filepath and os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except:
+                pass
+        
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        print("="*60)
+        print("ERRO NA TRANSCRIÇÃO:")
+        print("="*60)
+        print(f"Mensagem: {error_msg}")
+        print("\nStack trace completo:")
+        print(error_trace)
+        print("="*60)
+        return jsonify({'error': f'Erro ao processar áudio: {error_msg}'}), 500
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    history = load_history()
+    return jsonify({'history': history[:20]})  # Últimas 20 transcrições
+
+@app.route('/api/corrections', methods=['GET'])
+def get_corrections():
+    corrections = load_corrections()
+    return jsonify({'corrections': corrections})
+
+@app.route('/api/corrections', methods=['POST'])
+def add_correction():
+    data = request.json
+    wrong = data.get('wrong', '').strip()
+    correct = data.get('correct', '').strip()
+    
+    if not wrong or not correct:
+        return jsonify({'error': 'Campos inválidos'}), 400
+    
+    corrections = load_corrections()
+    corrections[wrong] = correct
+    
+    corrections_path = os.path.join(app.config['DATA_FOLDER'], 'correcoes_custom.json')
+    with open(corrections_path, 'w', encoding='utf-8') as f:
+        json.dump(corrections, f, ensure_ascii=False, indent=2)
+    
+    return jsonify({'success': True, 'corrections': corrections})
+
+if __name__ == '__main__':
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
+    
+    # Criar arquivos iniciais se não existirem
+    corrections_path = os.path.join(app.config['DATA_FOLDER'], 'correcoes_custom.json')
+    if not os.path.exists(corrections_path):
+        with open(corrections_path, 'w', encoding='utf-8') as f:
+            json.dump({}, f)
+    
+    history_path = os.path.join(app.config['DATA_FOLDER'], 'historico_transcricoes.json')
+    if not os.path.exists(history_path):
+        with open(history_path, 'w', encoding='utf-8') as f:
+            json.dump([], f)
+    
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DecifraVoz - Transcrição de Áudio Inteligente</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="https://i.ibb.co/Gvfn2RGt/logo-decifravoz.png" alt="DecifraVoz">
+                <h1>DECIFRAVOZ</h1>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-tab="transcribe">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                    Transcrever
+                </button>
+                <button class="nav-btn" data-tab="history">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Histórico
+                </button>
+                <button class="nav-btn" data-tab="corrections">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    Correções
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Tab: Transcrever -->
+            <div class="tab-content active" id="transcribe-tab">
+                <div class="hero">
+                    <h2>Transforme áudio em texto com IA</h2>
+                    <p>Transcrição automática usando Whisper AI da OpenAI</p>
+                </div>
+
+                <div class="upload-section">
+                    <div class="upload-card">
+                        <div class="upload-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                        </div>
+                        <h3>Selecione seu arquivo de áudio</h3>
+                        <p>Formatos suportados: MP3, WAV, MP4, M4A, OGG, FLAC</p>
+                        <input type="file" id="audioFile" accept=".mp3,.wav,.mp4,.m4a,.ogg,.flac" hidden>
+                        <button class="btn-primary" onclick="document.getElementById('audioFile').click()">
+                            Escolher Arquivo
+                        </button>
+                        <div id="fileInfo" class="file-info" style="display: none;"></div>
+                    </div>
+
+                    <div class="model-selector">
+                        <label>Modelo de Transcrição</label>
+                        <div class="model-grid">
+                            <div class="model-card" data-model="tiny">
+                                <div class="model-badge">Rápido</div>
+                                <h4>Tiny</h4>
+                                <p>Mais rápido, menor precisão</p>
+                            </div>
+                            <div class="model-card active" data-model="base">
+                                <div class="model-badge">Recomendado</div>
+                                <h4>Base</h4>
+                                <p>Equilíbrio ideal</p>
+                            </div>
+                            <div class="model-card" data-model="small">
+                                <div class="model-badge">Preciso</div>
+                                <h4>Small</h4>
+                                <p>Boa precisão</p>
+                            </div>
+                            <div class="model-card" data-model="medium">
+                                <div class="model-badge">Premium</div>
+                                <h4>Medium</h4>
+                                <p>Alta precisão</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-transcribe" id="transcribeBtn" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        Iniciar Transcrição
+                    </button>
+                </div>
+
+                <!-- Progress -->
+                <div id="progressSection" class="progress-section" style="display: none;">
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <h3>Processando...</h3>
+                            <div class="spinner"></div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <p class="progress-text">Aguarde enquanto transcrevemos seu áudio</p>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div id="resultsSection" class="results-section" style="display: none;">
+                    <div class="results-header">
+                        <h3>Resultado da Transcrição</h3>
+                        <div class="results-actions">
+                            <button class="btn-secondary" onclick="copyText()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                Copiar
+                            </button>
+                            <button class="btn-secondary" onclick="downloadText()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">⏱️</div>
+                            <div class="stat-value" id="statDuration">-</div>
+                            <div class="stat-label">Duração</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⚡</div>
+                            <div class="stat-value" id="statProcessing">-</div>
+                            <div class="stat-label">Processamento</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📝</div>
+                            <div class="stat-value" id="statWords">-</div>
+                            <div class="stat-label">Palavras</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🤖</div>
+                            <div class="stat-value" id="statModel">-</div>
+                            <div class="stat-label">Modelo</div>
+                        </div>
+                    </div>
+
+                    <div class="text-result">
+                        <div class="result-tabs">
+                            <button class="result-tab active" data-result-tab="full">Texto Completo</button>
+                            <button class="result-tab" data-result-tab="segments">Com Timestamps</button>
+                        </div>
+                        <div class="result-content active" id="fullText"></div>
+                        <div class="result-content" id="segmentsText"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Histórico -->
+            <div class="tab-content" id="history-tab">
+                <div class="hero">
+                    <h2>Histórico de Transcrições</h2>
+                    <p>Suas últimas transcrições realizadas</p>
+                </div>
+                <div id="historyList" class="history-list"></div>
+            </div>
+
+            <!-- Tab: Correções -->
+            <div class="tab-content" id="corrections-tab">
+                <div class="hero">
+                    <h2>Dicionário de Correções</h2>
+                    <p>Personalize a transcrição com termos específicos</p>
+                </div>
+
+                <div class="corrections-add">
+                    <div class="input-group">
+                        <input type="text" id="wrongWord" placeholder="Palavra incorreta">
+                        <input type="text" id="correctWord" placeholder="Correção">
+                        <button class="btn-primary" onclick="addCorrection()">Adicionar</button>
+                    </div>
+                </div>
+
+                <div id="correctionsList" class="corrections-list"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>DecifraVoz © 2025 - Powered by Whisper AI</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
