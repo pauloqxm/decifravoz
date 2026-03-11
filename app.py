@@ -2,8 +2,11 @@ import os
 import json
 import time
 import traceback
+import subprocess
+import threading
+import uuid
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response, stream_with_context
 from werkzeug.utils import secure_filename
 import whisper
 import torch
@@ -80,52 +83,35 @@ def transcribe():
     
     filepath = None
     try:
-        # Garantir que a pasta uploads existe
         upload_folder = os.path.abspath(app.config['UPLOAD_FOLDER'])
         os.makedirs(upload_folder, exist_ok=True)
         
-        # Salvar arquivo
         filename = secure_filename(file.filename)
         filepath = os.path.join(upload_folder, filename)
-        
-        print(f"Salvando arquivo: {filename}")
-        print(f"Caminho completo: {filepath}")
-        print(f"Pasta uploads existe: {os.path.exists(upload_folder)}")
-        
         file.save(filepath)
         
-        if not os.path.exists(filepath):
-            raise Exception(f"Arquivo não foi salvo: {filepath}")
-        
-        print(f"Arquivo salvo com sucesso!")
-        print(f"Tamanho do arquivo: {os.path.getsize(filepath)} bytes")
-        
-        # Carregar modelo Whisper
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"Carregando modelo {model_name} no dispositivo {device}...")
         model = whisper.load_model(model_name, device=device)
         
-        # Transcrever com configurações otimizadas para CPU
         start_time = time.time()
-        print(f"Iniciando transcrição de {filename}...")
         
-        # Configurações para CPU (FP32)
         result = model.transcribe(
             filepath,
             language='pt',
-            fp16=False,  # Desabilita FP16 para CPU
-            verbose=True
+            fp16=False,
+            verbose=True,
+            task='transcribe',
+            word_timestamps=True,
+            condition_on_previous_text=True,
+            initial_prompt="Transcrição em português brasileiro."
         )
         
         processing_time = time.time() - start_time
-        print(f"Transcrição concluída em {processing_time:.2f}s")
         
-        # Aplicar correções
         corrections = load_corrections()
         text = result.get('text', '')
         corrected_text = apply_corrections(text, corrections)
         
-        # Extrair segmentos com timestamps
         segments = []
         for seg in result.get('segments', []):
             segments.append({
@@ -134,12 +120,10 @@ def transcribe():
                 'text': apply_corrections(seg.get('text', ''), corrections)
             })
         
-        # Calcular estatísticas
         duration_min = result.get('duration', 0) / 60
         word_count = len(corrected_text.split())
         preview = corrected_text[:500] + "..." if len(corrected_text) > 500 else corrected_text
         
-        # Salvar no histórico
         history_data = {
             'timestamp': datetime.now().isoformat(),
             'arquivo': filename,
@@ -151,7 +135,6 @@ def transcribe():
         }
         save_to_history(history_data)
         
-        # Limpar arquivo temporário
         if filepath and os.path.exists(filepath):
             os.remove(filepath)
         
@@ -168,7 +151,6 @@ def transcribe():
         })
     
     except Exception as e:
-        # Limpar arquivo em caso de erro
         if filepath and os.path.exists(filepath):
             try:
                 os.remove(filepath)
@@ -185,6 +167,108 @@ def transcribe():
         print(error_trace)
         print("="*60)
         return jsonify({'error': f'Erro ao processar áudio: {error_msg}'}), 500
+
+@app.route('/api/transcribe-stream', methods=['POST'])
+def transcribe_stream():
+    """Endpoint para transcrição com streaming de segmentos em tempo real"""
+    if 'audio' not in request.files:
+        return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+    
+    file = request.files['audio']
+    model_name = request.form.get('model', 'base')
+    
+    if file.filename == '':
+        return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Formato de arquivo não suportado'}), 400
+    
+    upload_folder = os.path.abspath(app.config['UPLOAD_FOLDER'])
+    os.makedirs(upload_folder, exist_ok=True)
+    
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(upload_folder, filename)
+    file.save(filepath)
+    
+    def generate():
+        try:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            model = whisper.load_model(model_name, device=device)
+            
+            start_time = time.time()
+            corrections = load_corrections()
+            
+            # Transcrever e enviar segmentos conforme são processados
+            result = model.transcribe(
+                filepath,
+                language='pt',
+                fp16=False,
+                verbose=False,
+                task='transcribe',
+                word_timestamps=True,
+                condition_on_previous_text=True,
+                initial_prompt="Transcrição em português brasileiro."
+            )
+            
+            # Enviar segmentos um por um
+            for seg in result.get('segments', []):
+                segment_data = {
+                    'type': 'segment',
+                    'start': seg.get('start', 0),
+                    'end': seg.get('end', 0),
+                    'text': apply_corrections(seg.get('text', '').strip(), corrections)
+                }
+                yield f"data: {json.dumps(segment_data)}\n\n"
+                time.sleep(0.1)  # Pequeno delay para simular streaming
+            
+            processing_time = time.time() - start_time
+            text = result.get('text', '')
+            corrected_text = apply_corrections(text, corrections)
+            
+            duration_min = result.get('duration', 0) / 60
+            word_count = len(corrected_text.split())
+            
+            # Enviar resultado final
+            final_data = {
+                'type': 'complete',
+                'text': corrected_text,
+                'stats': {
+                    'duration': duration_min,
+                    'processing_time': processing_time,
+                    'word_count': word_count,
+                    'model': model_name
+                }
+            }
+            yield f"data: {json.dumps(final_data)}\n\n"
+            
+            # Salvar histórico
+            preview = corrected_text[:500] + "..." if len(corrected_text) > 500 else corrected_text
+            history_data = {
+                'timestamp': datetime.now().isoformat(),
+                'arquivo': filename,
+                'modelo': model_name,
+                'duracao_min': duration_min,
+                'tempo_proc': processing_time,
+                'palavras': word_count,
+                'preview': preview
+            }
+            save_to_history(history_data)
+            
+        except Exception as e:
+            error_data = {
+                'type': 'error',
+                'message': str(e)
+            }
+            yield f"data: {json.dumps(error_data)}\n\n"
+        
+        finally:
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except:
+                    pass
+    
+    return Response(stream_with_context(generate()), mimetype='text/event-stream')
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
